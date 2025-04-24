@@ -1,0 +1,15 @@
+[project]
+name = "dia-mw"
+description = "Dia TTS model capable of generating ultra-realistic dialogue in one pass. ComfyUI node."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["pydantic", "descript-audio-codec"]
+
+[project.urls]
+Repository = "https://github.com/billwuhao/ComfyUI_Dia"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = "mw"
+DisplayName = "MW-ComfyUI_Dia"
+Icon = ""
