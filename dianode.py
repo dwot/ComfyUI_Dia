@@ -35,7 +35,7 @@ class DiaTTSRun:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "text_input": ("STRING",),
+                "text_input": ("STRING", {"forceInput": True}),
                 "max_new_tokens": ("INT", {"default": 2000, "min": 860, "max": 3072, "step": 50}),
                 "cfg_scale": ("FLOAT", {"default": 3.0, "min": 1.0, "max": 5.0, "step": 0.1}),
                 "temperature": ("FLOAT", {"default": 1.3, "min": 1.0, "max": 1.5, "step": 0.05}),
