@@ -2,8 +2,6 @@
 
 # Dia's ComfyUI Node
 
-![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
-
 Text-to-speech, voice cloning, generating highly realistic dialogue in one go. 
 
 Supported vocal tags include `(laughs), (clears throat), (sighs), (gasps), (coughs), (singing), (sings), (mumbles), (beep), (groans), (sniffs), (claps), (screams), (inhales), (exhales), (applause), (burps), (humming), (sneezes), (chuckle), (whistles)`.
