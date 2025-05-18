@@ -4,13 +4,23 @@
 
 ![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
 
-Text-to-speech, voice cloning, generating highly realistic dialogue in one go. When cloning a voice, the `clone-prompt-text` needs to be placed before `gen-text`; only the audio of `gen-text` will be generated.
+Text-to-speech, voice cloning, generating highly realistic dialogue in one go. 
 
 Supported vocal tags include `(laughs), (clears throat), (sighs), (gasps), (coughs), (singing), (sings), (mumbles), (beep), (groans), (sniffs), (claps), (screams), (inhales), (exhales), (applause), (burps), (humming), (sneezes), (chuckle), (whistles)`.
 
 ## 📣 Updates
 
+[2025-05-19]⚒️: Release v1.1.0. Can generate and clone text of any length (requires blank line segmentation). Can save the speaker and load it directly afterwards.
+
 [2025-04-24]⚒️: Released v1.0.0.
+
+## 📝 Usage
+- generate:
+![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
+- clone:
+![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-05-18_22-22-40.png)
+- Load existing speakers:
+![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-05-19_00-07-01.png)
 
 ## Installation
 

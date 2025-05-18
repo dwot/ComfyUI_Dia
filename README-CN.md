@@ -2,13 +2,21 @@
 
 # Dia 的 ComfyUI 节点
 
-![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
-
-文本转语音, 声音克隆, 一次生成超真实对话. 克隆声音时, clone-prompt-text 需要放在 gen-text 前面, 只会生成 gen-text 的音频.
+文本转语音, 声音克隆, 一次生成超真实对话.
 
 支持的口头标签有 `(laughs), (clears throat), (sighs), (gasps), (coughs), (singing), (sings), (mumbles), (beep), (groans), (sniffs), (claps), (screams), (inhales), (exhales), (applause), (burps), (humming), (sneezes), (chuckle), (whistles)`.
 
+## 用法
+- 生成:
+![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
+- 克隆:
+![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
+- 加载已有说话者:
+![](https://github.com/billwuhao/ComfyUI_Dia/blob/main/images/2025-04-24_08-56-13.png)
+
 ## 📣 更新
+
+[2025-05-19]⚒️: 发布 v1.1.0。 可任意长度文本生成, 克隆 (需要空行分割). 可保存说话者, 之后直接加载.
 
 [2025-04-24]⚒️: 发布 v1.0.0。
 
