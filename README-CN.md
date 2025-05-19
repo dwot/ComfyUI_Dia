@@ -4,6 +4,8 @@
 
 文本转语音, 声音克隆, 一次生成超真实对话.
 
+https://github.com/user-attachments/assets/6b27114d-aa9e-4f70-99c1-683994621402
+
 支持的口头标签有 `(laughs), (clears throat), (sighs), (gasps), (coughs), (singing), (sings), (mumbles), (beep), (groans), (sniffs), (claps), (screams), (inhales), (exhales), (applause), (burps), (humming), (sneezes), (chuckle), (whistles)`.
 
 ## 用法
