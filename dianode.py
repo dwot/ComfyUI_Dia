@@ -46,7 +46,7 @@ def cache_audio_tensor(
     except Exception as e:
         raise Exception(f"Error caching audio tensor: {e}")
 
-
+MODEL_CACHE = None
 class DiaTTSRun:
     def __init__(self):
         if torch.cuda.is_available():
@@ -56,7 +56,6 @@ class DiaTTSRun:
         else:
             device = "cpu"
 
-        self.model_cache = None
         self.device = torch.device(device)
         print(f"Using device: {device}")
 
@@ -103,9 +102,10 @@ class DiaTTSRun:
         save_speakers=False,
         speaker_id="A_and_B",
     ):
-        if self.model_cache is None:
+        global MODEL_CACHE
+        if MODEL_CACHE is None:
             model_path = os.path.join(checkpoint_path, "dia-v0_1.pth")
-            self.model_cache = Dia.from_local(config_path, model_path, compute_dtype="float16", device=self.device, dac_model_path=dac_model_path)
+            MODEL_CACHE = Dia.from_local(config_path, model_path, compute_dtype="float16", device=self.device, dac_model_path=dac_model_path)
 
         text = re.split(r'\n\s*\n', text_input.strip())
         # print(f"Input text: {text}")
@@ -134,13 +134,13 @@ class DiaTTSRun:
                     sr,
                 )
 
-            audio_prompt = self.model_cache.load_audio(audio_path)
+            audio_prompt = MODEL_CACHE.load_audio(audio_path)
             text = [speakers_text_input.strip() + f"\n{i}" for i in text]
             audio_prompts = [audio_prompt for i in range(len(text))]
 
         # Use torch.inference_mode() context manager for the generation call
         with torch.inference_mode():
-            output_audio_np = self.model_cache.generate(
+            output_audio_np = MODEL_CACHE.generate(
                 text=text,
                 max_tokens=max_new_tokens,
                 cfg_scale=cfg_scale,
@@ -161,7 +161,7 @@ class DiaTTSRun:
 
             # Unload model if requested
             if unload_model:
-                self.model_cache = None
+                MODEL_CACHE = None
                 torch.cuda.empty_cache()
 
             return ({"waveform": torch.from_numpy(output_audio).unsqueeze(0).unsqueeze(0), "sample_rate": output_sr},)
