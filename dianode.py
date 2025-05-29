@@ -71,6 +71,8 @@ class DiaTTSRun:
                 "cfg_filter_top_k": ("INT", {"default": 30, "min": 15, "max": 50, "step": 1}),
                 # "speed_factor": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
                 # "use_torch_compile": ("BOOLEAN", {"default": True}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "est_speech_rate":  ("FLOAT", {"default": 1.8, "min": 0.80, "max": 8.5, "step": 0.1}),
                 "unload_model": ("BOOLEAN", {"default": True}),
             },
             "optional": {
@@ -95,6 +97,8 @@ class DiaTTSRun:
         top_p: float,
         cfg_filter_top_k: int,
         # speed_factor: float,
+        seed: int,
+        est_speech_rate: float,
         unload_model: bool,
         use_torch_compile=False,
         speakers_audio_input=None,
@@ -138,11 +142,32 @@ class DiaTTSRun:
             text = [speakers_text_input.strip() + f"\n{i}" for i in text]
             audio_prompts = [audio_prompt for i in range(len(text))]
 
+        # Estimate max_tokens dynamically for all text chunks
+        max_tokens_list = []
+        for t in text:
+            # Optional: strip repeated transcript like in model.py
+            #if t.count("[S1]") >= 2:
+            #    parts = t.split("[S1]", 2)
+            #    t = "[S1]" + parts[2]
+
+            # Estimate seconds from words (avg ~2.5 wps), then tokens = seconds * 86
+            word_count = len(t.split())
+            estimated_seconds = word_count / est_speech_rate
+            estimated_tokens = int(estimated_seconds * 86 * 1.15)  # add 15% padding
+
+            # Clamp tokens
+            estimated_tokens = max(860, min(estimated_tokens, 3072))
+            max_tokens_list.append(estimated_tokens)
+
+        # Use max token requirement across all input chunks
+        max_tokens = max(max_tokens_list)
+        print(f"[DEBUG] Dynamic max_tokens selected: {max_tokens}")
+
         # Use torch.inference_mode() context manager for the generation call
         with torch.inference_mode():
             output_audio_np = MODEL_CACHE.generate(
                 text=text,
-                max_tokens=max_new_tokens,
+                max_tokens=max_tokens,
                 cfg_scale=cfg_scale,
                 temperature=temperature,
                 top_p=top_p,
@@ -150,6 +175,8 @@ class DiaTTSRun:
                 use_torch_compile=use_torch_compile, 
                 audio_prompt=audio_prompts,
                 verbose=True,
+                est_speech_rate=est_speech_rate,
+                seed=seed,
             )
 
         if output_audio_np[0] is not None:

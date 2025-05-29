@@ -15,7 +15,6 @@ from .state import DecoderInferenceState, DecoderOutput, EncoderInferenceState
 DEFAULT_SAMPLE_RATE = 44100
 SAMPLE_RATE_RATIO = 512
 
-
 def _get_default_device():
     if torch.cuda.is_available():
         return torch.device("cuda")
@@ -122,6 +121,25 @@ class Dia:
 
         if torch.cuda.is_available():
             torch.backends.cuda.matmul.allow_tf32 = True
+
+    def _estimate_tokens_from_text(self, text: str, est_speech_rate: float = 1.8, padding: float = 0.15, max_limit: int = 3072, min_tokens: int = 860) -> int:
+        """
+        Estimate tokens based on estimated spoken duration (1s ≈ 86 tokens).
+        Strips leading reference transcript and applies sane min/max bounds.
+        """
+        # Strip reference transcript (keep second [S1] section onward)
+        #if text.count("[S1]") >= 2:
+        #    parts = text.split("[S1]", 2)
+        #    text = "[S1]" + parts[2]
+
+        word_count = len(text.split())
+        estimated_seconds = word_count / est_speech_rate  # avg speech pace
+        estimated_tokens = int(estimated_seconds * 86 * (1 + padding))
+
+        # Clamp to bounds
+        estimated_tokens = max(min_tokens, min(estimated_tokens, max_limit))
+        return estimated_tokens
+
 
     @classmethod
     def from_local(
@@ -511,8 +529,13 @@ class Dia:
 
         audios = []
 
+        print(f"Decoding {batch_size} outputs. Lengths: {lengths_Bx.tolist()}")
         if self.load_dac:
             for i in range(batch_size):
+                length = lengths_Bx[i]
+                if length <= 0:
+                    print(f"Skipping decoding for chunk {i} due to zero length.")
+                    continue  # Skip this sample
                 audio = self._decode(codebook[i, : lengths_Bx[i], :])
                 audio_np = audio.cpu().numpy()
                 audios.append(audio_np)
@@ -602,6 +625,8 @@ class Dia:
         audio_prompt_path: list[str | torch.Tensor | None] | str | torch.Tensor | None = None,
         use_cfg_filter: bool | None = None,
         verbose: bool = False,
+        est_speech_rate: float = 1.8,
+        seed: int = 8675309,
     ) -> np.ndarray | list[np.ndarray]:
         """Generates audio corresponding to the input text.
 
@@ -634,11 +659,25 @@ class Dia:
             each corresponding to a prompt in the input list. Returns None for a
             sequence if no audio was generated for it.
         """
+        MAX_SEED_NUMPY = 2**32 - 1
+        seed_torch = seed
+        seed_numpy = seed % MAX_SEED_NUMPY
+        torch.manual_seed(seed_torch)
+        np.random.seed(seed_numpy)
+        if self.device.type == 'cuda': torch.cuda.manual_seed_all(seed_torch)
+        
         batch_size = len(text) if isinstance(text, list) else 1
         audio_eos_value = self.config.data.audio_eos_value
         audio_pad_value = self.config.data.audio_pad_value
         delay_pattern = self.config.data.delay_pattern
-        max_tokens = self.config.data.audio_length if max_tokens is None else max_tokens
+        print("TEST MAX TOKENS")
+        print(f"[DEBUG] Max tokens is: {max_tokens}")
+        raw_texts = text if isinstance(text, list) else [text]
+        max_tokens_list = []
+        for t in raw_texts:
+            est = self._estimate_tokens_from_text(t, est_speech_rate)
+            print(f"[DEBUG] Estimated tokens for input: {repr(t)} => {est}")
+            max_tokens_list.append(est)
         max_delay_pattern = max(delay_pattern)
         delay_pattern_Cx = torch.tensor(delay_pattern, device=self.device, dtype=torch.long)
         self.model.eval()
@@ -692,7 +731,7 @@ class Dia:
             start_time = time.time()
 
         # --- Generation Loop ---
-        while dec_step < max_tokens:
+        while dec_step < max(max_tokens_list):
             if (eos_countdown_Bx == 0).all():
                 break
 
@@ -716,9 +755,12 @@ class Dia:
             active_mask_Bx = eos_countdown_Bx != 0
             eos_trigger_Bx = torch.zeros_like(active_mask_Bx)
             if active_mask_Bx.any():
-                is_eos_token = (~eos_detected_Bx[active_mask_Bx]) & (pred_BxC[active_mask_Bx, 0] == audio_eos_value)
-                is_max_len = current_step_idx >= max_tokens - max_delay_pattern
-                eos_trigger_Bx[active_mask_Bx] = is_eos_token | is_max_len
+                for i in range(batch_size):
+                    if not active_mask_Bx[i]:
+                        continue
+                    is_eos = not eos_detected_Bx[i] and pred_BxC[i, 0] == audio_eos_value
+                    is_max_len = current_step_idx >= (max_tokens_list[i] - max_delay_pattern)
+                    eos_trigger_Bx[i] = is_eos or is_max_len
             eos_detected_Bx |= eos_trigger_Bx
             start_countdown_mask_Bx = eos_trigger_Bx & (eos_countdown_Bx < 0)
             if start_countdown_mask_Bx.any():
