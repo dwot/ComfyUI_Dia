@@ -145,11 +145,6 @@ class DiaTTSRun:
         # Estimate max_tokens dynamically for all text chunks
         max_tokens_list = []
         for t in text:
-            # Optional: strip repeated transcript like in model.py
-            #if t.count("[S1]") >= 2:
-            #    parts = t.split("[S1]", 2)
-            #    t = "[S1]" + parts[2]
-
             # Estimate seconds from words (avg ~2.5 wps), then tokens = seconds * 86
             word_count = len(t.split())
             estimated_seconds = word_count / est_speech_rate
@@ -161,7 +156,6 @@ class DiaTTSRun:
 
         # Use max token requirement across all input chunks
         max_tokens = max(max_tokens_list)
-        print(f"[DEBUG] Dynamic max_tokens selected: {max_tokens}")
 
         # Use torch.inference_mode() context manager for the generation call
         with torch.inference_mode():

@@ -15,6 +15,7 @@ from .state import DecoderInferenceState, DecoderOutput, EncoderInferenceState
 DEFAULT_SAMPLE_RATE = 44100
 SAMPLE_RATE_RATIO = 512
 
+
 def _get_default_device():
     if torch.cuda.is_available():
         return torch.device("cuda")
@@ -123,15 +124,6 @@ class Dia:
             torch.backends.cuda.matmul.allow_tf32 = True
 
     def _estimate_tokens_from_text(self, text: str, est_speech_rate: float = 1.8, padding: float = 0.15, max_limit: int = 3072, min_tokens: int = 860) -> int:
-        """
-        Estimate tokens based on estimated spoken duration (1s ≈ 86 tokens).
-        Strips leading reference transcript and applies sane min/max bounds.
-        """
-        # Strip reference transcript (keep second [S1] section onward)
-        #if text.count("[S1]") >= 2:
-        #    parts = text.split("[S1]", 2)
-        #    text = "[S1]" + parts[2]
-
         word_count = len(text.split())
         estimated_seconds = word_count / est_speech_rate  # avg speech pace
         estimated_tokens = int(estimated_seconds * 86 * (1 + padding))
@@ -139,7 +131,6 @@ class Dia:
         # Clamp to bounds
         estimated_tokens = max(min_tokens, min(estimated_tokens, max_limit))
         return estimated_tokens
-
 
     @classmethod
     def from_local(
@@ -529,12 +520,10 @@ class Dia:
 
         audios = []
 
-        print(f"Decoding {batch_size} outputs. Lengths: {lengths_Bx.tolist()}")
         if self.load_dac:
             for i in range(batch_size):
                 length = lengths_Bx[i]
                 if length <= 0:
-                    print(f"Skipping decoding for chunk {i} due to zero length.")
                     continue  # Skip this sample
                 audio = self._decode(codebook[i, : lengths_Bx[i], :])
                 audio_np = audio.cpu().numpy()
@@ -670,13 +659,10 @@ class Dia:
         audio_eos_value = self.config.data.audio_eos_value
         audio_pad_value = self.config.data.audio_pad_value
         delay_pattern = self.config.data.delay_pattern
-        print("TEST MAX TOKENS")
-        print(f"[DEBUG] Max tokens is: {max_tokens}")
         raw_texts = text if isinstance(text, list) else [text]
         max_tokens_list = []
         for t in raw_texts:
             est = self._estimate_tokens_from_text(t, est_speech_rate)
-            print(f"[DEBUG] Estimated tokens for input: {repr(t)} => {est}")
             max_tokens_list.append(est)
         max_delay_pattern = max(delay_pattern)
         delay_pattern_Cx = torch.tensor(delay_pattern, device=self.device, dtype=torch.long)
